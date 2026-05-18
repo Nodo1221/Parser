@@ -1,3 +1,5 @@
+use std::unreachable;
+
 #[derive(Debug, Clone, Copy)]
 enum Token {
     Num(u64),
@@ -57,6 +59,36 @@ fn parse_mul_level(mut tokens: &[Token]) -> (Box<Expr>, &[Token]) {
     }
 }
 
+fn parse_add_level2(tokens: &[Token]) -> (Box<Expr>, &[Token]) {
+    assert!(!tokens.is_empty());
+
+    // NOTE: every level can just stop if it encounters a symbol not from its level.
+
+    // Parse level higher
+    let (mut tree, mut tokens) = parse_mul_level(tokens);
+
+    while !tokens.is_empty() {
+        println!("add loop: {:?}", tokens);
+
+        // Parse RHS level higher
+        println!("sending to parse mul: {:?}", &tokens[1..]);
+        let (newtree, newtokens) = parse_mul_level(&tokens[1..]);
+        
+        println!("Tokens should be a + i guess here? but {:?}", tokens);
+
+        match tokens[0] {
+            Token::Minus => { tree = Box::new(Expr::Binary { op: Op::Subs, left: tree, right: newtree }); }
+            Token::Plus => { tree = Box::new(Expr::Binary { op: Op::Add, left: tree, right: newtree }); }
+            _ => {unreachable!("All higher levels should've been parsed. Encountered: {:?}", tokens[0])}
+        }
+
+        tokens = newtokens;
+
+    }
+
+    (tree, tokens)
+}
+
 fn parse_add_level(mut tokens: &[Token]) -> (Box<Expr>, &[Token]) {
     assert!(!tokens.is_empty());
 
@@ -88,13 +120,15 @@ fn parse_add_level(mut tokens: &[Token]) -> (Box<Expr>, &[Token]) {
 
         }
 
+        println!("before match: {:?}", tokens);
+
         match tokens[0] {
             Token::Plus | Token::Minus => {
                 let Token::Num(another_num) = tokens[1] else {return (tree, tokens);};
                 tree = Box::new(Expr::Binary { op: Op::Add, left: tree, right: Box::new(Expr::Num(another_num)) });
                 tokens = &tokens[2..];
             }
-            _ => {return (tree, tokens);}
+            _ => {println!("returning from match because {:?}", tokens[0]); return (tree, tokens);}
         }
     }
     (tree, tokens)
@@ -107,12 +141,15 @@ fn main() {
     use Token::*;
 
     // let lexxed = vec![Num(2), Star, Num(3), Star, Num(4)];
+
+
     // 2 + 3 * 4 + 1
     // let lexxed = vec![Num(2), Plus, Num(3), Star, Num(4), Plus, Num(1)];
+
     let lexxed = vec![Num(2), Plus, Num(3), Plus, Num(4)];
     // let lexxed = vec![Num(2)];
 
-    let (tree, _) = parse_add_level(&lexxed);
+    let (tree, _) = parse_add_level2(&lexxed);
 
     println!("{:?}", tree);
 
