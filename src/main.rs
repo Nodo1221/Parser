@@ -59,10 +59,18 @@ fn parse_mul_level(mut tokens: &[Token]) -> (Box<Expr>, &[Token]) {
     }
 }
 
+const LEVELS: [&[Token]; 2] = [
+    &[Token::Plus, Token::Minus],
+    &[Token::Star, Token::Slash],
+];
+
+// NOTE: every level can just stop if it encounters a symbol not from its level.
+// The current highest level is different because it consumes Numbers.
+// In order to unify, move that logic to a different func (consume Num, return leaf)
+// And then level function could just defer one to the next.
+
 fn parse_add_level2(tokens: &[Token]) -> (Box<Expr>, &[Token]) {
     assert!(!tokens.is_empty());
-
-    // NOTE: every level can just stop if it encounters a symbol not from its level.
 
     // Parse level higher
     let (mut tree, mut tokens) = parse_mul_level(tokens);
