@@ -1,6 +1,6 @@
 use std::unreachable;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Token {
     Num(u64),
     Plus, Minus, Star, Slash,
@@ -69,28 +69,46 @@ const LEVELS: [&[Token]; 2] = [
 // In order to unify, move that logic to a different func (consume Num, return leaf)
 // And then level function could just defer one to the next.
 
-fn parse_add_level2(tokens: &[Token]) -> (Box<Expr>, &[Token]) {
+fn parse_primary(tokens: &[Token]) -> (Box<Expr>, &[Token]) {
+    match tokens[0] {
+        Token::Num(n) => (Box::new(Expr::Num(n)), &tokens[1..]),
+        _ => unreachable!("Incorrect token in primary, {:?}", tokens[0]),
+    }
+}
+
+fn parse_add_level2(mut tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
     assert!(!tokens.is_empty());
 
-    // Parse level higher
-    let (mut tree, mut tokens) = parse_mul_level(tokens);
+    let mut tree;
+
+    if level == LEVELS.len() {
+        (tree, tokens) = parse_primary(tokens);
+        println!("we at the highest level");
+    }
+
+    else {
+        (tree, tokens) = parse_add_level2(tokens, level + 1);
+    }
+
 
     while !tokens.is_empty() {
-        println!("add loop: {:?}", tokens);
+        if LEVELS[level].contains(&tokens[0]) {
+            tree = Box::new(Expr::Binary { op: Op::Subs, left: tree, right: newtree });
+            tokens = newtokens;
+        }
+
+        // println!("add loop: {:?}", tokens);
 
         // Parse RHS level higher
         println!("sending to parse mul: {:?}", &tokens[1..]);
-        let (newtree, newtokens) = parse_mul_level(&tokens[1..]);
+        let (newtree, newtokens) = parse_add_level2(&tokens[1..], level + 1);
         
-        println!("Tokens should be a + i guess here? but {:?}", tokens);
+        // println!("Tokens should be a + i guess here? but {:?}", tokens);
 
-        match tokens[0] {
-            Token::Minus => { tree = Box::new(Expr::Binary { op: Op::Subs, left: tree, right: newtree }); }
-            Token::Plus => { tree = Box::new(Expr::Binary { op: Op::Add, left: tree, right: newtree }); }
-            _ => {unreachable!("All higher levels should've been parsed. Encountered: {:?}", tokens[0])}
+
+        else {
+            break;
         }
-
-        tokens = newtokens;
 
     }
 
@@ -157,7 +175,7 @@ fn main() {
     let lexxed = vec![Num(2), Plus, Num(3), Plus, Num(4)];
     // let lexxed = vec![Num(2)];
 
-    let (tree, _) = parse_add_level2(&lexxed);
+    let (tree, _) = parse_add_level2(&lexxed, 0);
 
     println!("{:?}", tree);
 
