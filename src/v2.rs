@@ -4,6 +4,20 @@ enum Token {
     Plus, Minus, Star, Slash,
 }
 
+impl TryFrom<&Token> for Op {
+    type Error = ();
+
+    fn try_from(token: &Token) -> Result<Op, ()> {
+        Ok(match token {
+            Token::Plus => Op::Add,
+            Token::Minus => Op::Subs,
+            Token::Star => Op::Mul,
+            Token::Slash => Op::Div,
+            _ => return Err(()),
+        })
+    }
+}
+
 #[derive(Debug)]
 enum Expr {
     Num(u64),
@@ -41,15 +55,9 @@ fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
             return (tree, tokens);
         }
 
-        let op = match tokens[0] {
-            Token::Plus => Op::Add,
-            Token::Minus => Op::Subs,
-            Token::Star => Op::Mul,
-            Token::Slash => Op::Div,
-            _ => unreachable!("Expected Op"),
-        };
-        
+        let op = Op::try_from(&tokens[0]).expect("Expected Op");
         let rhs;
+        
         (rhs, tokens) = parse(&tokens[1..], level + 1);
 
         tree = Box::new(Expr::Binary {
