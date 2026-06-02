@@ -50,11 +50,20 @@ const LEVELS: [&[Token]; 2] = [
 fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
     assert!(!tokens.is_empty());
 
+    // Highest precedence level (atomic)
     if level == LEVELS.len() {
-        let Token::Num(n) = tokens[0] else { unreachable!("Expected Num token") };
-        return (Box::new(Expr::Num(n)), &tokens[1..]);
+        return match tokens[0] {
+            Token::Num(n) => (Box::new(Expr::Num(n)), &tokens[1..]),
+            Token::Minus => match tokens[1] {
+                Token::Num(n) => (Box::new(Expr::Unary { op: Op::Neg, left: Box::new(Expr::Num(n)) }), &tokens[2..]),
+                _ => unreachable!("Expected Num after Minus"),
+            },
+            _ => unreachable!("Expected Num or Minus"),
+        };
+
     }
 
+    // Defer to a higher level
     let (mut tree, mut tokens) = parse(&tokens, level + 1);
 
     while !tokens.is_empty() {
