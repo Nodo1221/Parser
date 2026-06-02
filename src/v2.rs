@@ -1,3 +1,10 @@
+use crate::ParseError::UnexpectedToken;
+
+#[derive(Debug)]
+enum ParseError {
+    UnexpectedToken(Token)
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Token {
     Num(u64),
@@ -5,15 +12,15 @@ enum Token {
 }
 
 impl TryFrom<&Token> for Op {
-    type Error = ();
+    type Error = ParseError;
 
-    fn try_from(token: &Token) -> Result<Op, ()> {
+    fn try_from(token: &Token) -> Result<Op, ParseError> {
         Ok(match token {
             Token::Plus => Op::Add,
             Token::Minus => Op::Subs,
             Token::Star => Op::Mul,
             Token::Slash => Op::Div,
-            _ => return Err(()),
+            _ => return Err(UnexpectedToken(*token)),
         })
     }
 }
@@ -44,7 +51,7 @@ fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
     assert!(!tokens.is_empty());
 
     if level == LEVELS.len() {
-        let Token::Num(n) = tokens[0] else { unreachable!("expected Num token") };
+        let Token::Num(n) = tokens[0] else { unreachable!("Expected Num token") };
         return (Box::new(Expr::Num(n)), &tokens[1..]);
     }
 
@@ -55,7 +62,7 @@ fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
             return (tree, tokens);
         }
 
-        let op = Op::try_from(&tokens[0]).expect("Expected Op");
+        let op = Op::try_from(&tokens[0]).unwrap();
         let rhs;
         
         (rhs, tokens) = parse(&tokens[1..], level + 1);
