@@ -4,7 +4,6 @@ enum Token {
     Plus, Minus, Star, Slash,
 }
 
-/// Parsed
 #[derive(Debug)]
 enum Expr {
     Num(u64),
@@ -27,10 +26,6 @@ const LEVELS: [&[Token]; 2] = [
     &[Token::Star, Token::Slash],
 ];
 
-// fn unit_parse(mut tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
-
-// }
-
 fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
     assert!(!tokens.is_empty());
 
@@ -46,8 +41,6 @@ fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
             return (tree, tokens);
         }
 
-        let (newtree, newtokens) = parse(&tokens[1..], level + 1);
-
         let op = match tokens[0] {
             Token::Plus => Op::Add,
             Token::Minus => Op::Subs,
@@ -55,19 +48,18 @@ fn parse(tokens: &[Token], level: usize) -> (Box<Expr>, &[Token]) {
             Token::Slash => Op::Div,
             _ => unreachable!("Expected Op"),
         };
+        
+        let rhs;
+        (rhs, tokens) = parse(&tokens[1..], level + 1);
 
         tree = Box::new(Expr::Binary {
             op,
             left: tree,
-            right: newtree
+            right: rhs
         });
-
-        tokens = newtokens;
     }
 
-    // unreachable!();
-    return (tree, tokens);
-    // return (Box::new(Expr::Num(4)), &tokens[1..]);
+    (tree, tokens)
 }
 
 fn main() {
